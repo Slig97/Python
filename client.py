@@ -6,8 +6,8 @@ SERVER_IP=socket.gethostbyname(socket.gethostname()) #IP from server
 class Client:
 
     def __init__(self):
-        self.server_ip = input("Gib die IP-Adresse des Servers ein: ")
-        name=input("Gib deinen Namen ein: ")
+        self.server_ip = input("Type in the IP-Address of the Server: ")
+        name=input("Type in your name: ")
         self.name=name
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.port = 5050
@@ -17,7 +17,7 @@ class Client:
         self.thread2=threading.Thread(target=self.receive)
         self.thread1.start()
         self.thread2.start()
-        print("Willkommen im Chatraum!")
+        print("Welcome to the Chatroom!")
 
     def write(self): #writing thread
         while True:
