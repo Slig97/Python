@@ -1,35 +1,61 @@
 import socket
 import threading
 
-SERVER_IP=socket.gethostbyname(socket.gethostname()) #IP from server
-
 class Client:
-
     def __init__(self):
-        self.server_ip = input("Type in the IP-Address of the Server: ")
-        name=input("Type in your name: ")
-        self.name=name
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.port = 5050
-        self.server_addr = (self.server_ip, self.port)
-        self.socket.connect(self.server_addr)
-        self.thread1=threading.Thread(target=self.write)
-        self.thread2=threading.Thread(target=self.receive)
-        self.thread1.start()
-        self.thread2.start()
-        print("Welcome to the Chatroom!")
+        self.udpsocket=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.tcpsocket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def write(self): #writing thread
-        while True:
-            self.chat = input("")
-            self.chat=self.name+": "+self.chat
-            self.socket.send(bytes(self.chat, "utf-8"))
+    def receive_ip_port(self):
+        self.udpsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.udpsocket.sendto(b"DISCOVER", ("<broadcast>", 8080))
+        recv=self.udpsocket.recv(1024)
+        recv=recv.decode("utf-8")
+        self.server_ip_address=recv.split(":")[0]
+        self.server_port=int(recv.split(":")[1])
+        self.udpsocket.close()
 
-    def receive(self): #waiting thread
+    def connect_to_server(self):
+        try:
+            self.tcpsocket.connect((self.server_ip_address,self.server_port))
+        except RuntimeError as e:
+            print(e)
+            exit(-1)
+    def chat(self):
+        self.name=input("Type in your username: ")
+        self.tcpsocket.send(bytes(self.name, "utf-8"))
+        thread=threading.Thread(target=self.send)
+        thread.start()
+        thread1=threading.Thread(target=self.receive)
+        thread1.start()
+        thread.join()
+        thread1.join()
+
+
+    def send(self):
         while True:
-            self.msg = self.socket.recv(1024)
-            self.msg = str(self.msg, "utf-8")
-            print(self.msg)
+            value=input("")
+            value=self.name+": "+value
+            try:
+                self.tcpsocket.send(bytes(value,"utf-8"))
+            except:
+                print("Server no longer reachable")
+                self.tcpsocket.close()
+                return
+
+    def receive(self):
+        while True:
+            try:
+                data=self.tcpsocket.recv(1024)
+                print(data.decode())
+            except:
+                print("Server no longer reachable")
+                self.tcpsocket.close()
+                return
+
+
 
 client=Client()
-
+client.receive_ip_port()
+client.connect_to_server()
+client.chat()
